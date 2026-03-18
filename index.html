@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>X1Bench — Protocol Health Scanner</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="app.css" />
+</head>
+<body>
+  <div class="app">
+
+    <header class="hero">
+      <div class="logo">
+        <div class="logo-icon">
+          <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
+            <path d="M14 2L26 8v12l-12 6L2 20V8l12-6z" stroke="url(#g1)" stroke-width="1.5" fill="none"/>
+            <path d="M14 8l6 3v6l-6 3-6-3v-6l6-3z" fill="url(#g1)" opacity="0.15"/>
+            <path d="M14 8l6 3v6l-6 3-6-3v-6l6-3z" stroke="url(#g1)" stroke-width="1.2" fill="none"/>
+            <circle cx="14" cy="14" r="2.5" fill="url(#g1)"/>
+            <defs><linearGradient id="g1" x1="2" y1="2" x2="26" y2="26"><stop stop-color="#7ef1d1"/><stop offset="1" stop-color="#8ab4ff"/></linearGradient></defs>
+          </svg>
+        </div>
+        <span class="logo-text">X1Bench</span>
+      </div>
+
+      <h1 class="hero-title">Protocol Health Scanner</h1>
+      <p class="hero-sub">Paste any X1 address — token, program, wallet, or transaction — for a plain-English health report.</p>
+
+
+
+      <form id="search-form" class="search-bar" autocomplete="off">
+        <input id="program" type="text" placeholder="Token, program, wallet, or tx signature…" required />
+        <button type="submit" id="scan-btn">
+          <span class="btn-label">Scan</span>
+          <span class="btn-spinner hidden"></span>
+        </button>
+      </form>
+    </header>
+
+    <main id="results" class="results hidden">
+
+      <!-- Type Identity Banner -->
+      <div id="type-banner" class="type-banner glass"></div>
+
+      <!-- Score Card -->
+      <section class="score-card glass">
+        <div class="score-ring-wrap">
+          <svg class="score-ring" viewBox="0 0 120 120">
+            <circle cx="60" cy="60" r="52" stroke="rgba(255,255,255,0.06)" stroke-width="10" fill="none"/>
+            <circle id="score-arc" cx="60" cy="60" r="52" stroke="url(#scoreGrad)" stroke-width="10" fill="none"
+              stroke-linecap="round" stroke-dasharray="327" stroke-dashoffset="327" transform="rotate(-90 60 60)"/>
+            <defs>
+              <linearGradient id="scoreGrad" x1="0" y1="0" x2="1" y2="1">
+                <stop id="scoreStop1" stop-color="#7ef1d1"/>
+                <stop id="scoreStop2" offset="1" stop-color="#8ab4ff"/>
+              </linearGradient>
+            </defs>
+          </svg>
+          <div class="score-number" id="score-number">—</div>
+        </div>
+        <div class="score-info">
+          <div class="score-label" id="score-label">Waiting for scan…</div>
+          <div class="score-summary" id="score-summary"></div>
+          <div class="score-badges" id="score-badges"></div>
+          <div class="score-address" id="score-address"></div>
+        </div>
+      </section>
+
+      <!-- Plain English TL;DR -->
+      <section id="tldr-section" class="tldr-section glass hidden"></section>
+
+      <!-- Risk Breakdown -->
+      <section class="risk-section glass">
+        <div class="section-header">
+          <h2 class="section-title">Risk Breakdown</h2>
+          <span class="info-tip" data-tip="Each risk category is scored low/medium/high based on real on-chain data. Low = safe, High = needs attention.">ℹ</span>
+        </div>
+        <div class="risk-grid" id="risk-grid"></div>
+      </section>
+
+      <!-- Bubble Map -->
+      <section id="bubble-section" class="bubble-section glass hidden">
+        <div class="section-header">
+          <h2 class="section-title">Wallet Activity Map</h2>
+          <span class="info-tip" data-tip="Each bubble is a wallet or program this address has interacted with. Bigger = more interactions. Click any bubble to view it on the explorer. Colors: green=received, red=sent, blue=swap, yellow=program.">ℹ</span>
+        </div>
+        <canvas id="bubble-canvas" width="640" height="400"></canvas>
+        <div class="bubble-legend" id="bubble-legend"></div>
+        <div class="bubble-table-wrap">
+          <table class="bubble-table" id="bubble-table">
+            <thead>
+              <tr>
+                <th>Address</th>
+                <th>Type</th>
+                <th>Flow</th>
+                <th>Txns</th>
+                <th>Volume</th>
+                <th>First Seen</th>
+                <th>Last Seen</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <div id="flow-section" class="flow-section hidden">
+          <h3 class="flow-title">Recent Transfers</h3>
+          <div id="flow-list" class="flow-list"></div>
+        </div>
+      </section>
+
+      <!-- Findings -->
+      <section class="findings-section glass">
+        <div class="section-header">
+          <h2 class="section-title">Findings</h2>
+          <span class="info-tip" data-tip="A plain-English breakdown of everything we found on-chain. Green = good, yellow = watch out, red = problem, blue = informational.">ℹ</span>
+        </div>
+        <div class="findings-list" id="findings-list"></div>
+      </section>
+
+      <!-- Holders / Token Holdings / Transfers -->
+      <section id="holders-section" class="holders-section glass hidden">
+        <div class="section-header">
+          <h2 class="section-title" id="holders-title">Top Holders</h2>
+          <span class="info-tip" id="holders-tip" data-tip="The largest token holders by balance. High concentration in one wallet can be risky.">ℹ</span>
+        </div>
+        <div class="holders-list" id="holders-list"></div>
+      </section>
+
+      <!-- Details -->
+      <details class="details-section glass">
+        <summary class="details-toggle">Technical Details</summary>
+        <div class="details-body"></div>
+      </details>
+
+      <a id="explorer-link" class="explorer-link hidden" target="_blank" rel="noopener">↗ View on X1 Explorer</a>
+    </main>
+
+    <div id="empty-state" class="empty-state">
+      <div class="empty-icon">
+        <svg width="64" height="64" viewBox="0 0 64 64" fill="none" opacity="0.25">
+          <path d="M32 6L58 18v28L32 58 6 46V18L32 6z" stroke="#7ef1d1" stroke-width="1.5"/>
+          <circle cx="32" cy="32" r="8" stroke="#8ab4ff" stroke-width="1.5"/>
+        </svg>
+      </div>
+      <p>Enter an address above to begin</p>
+    </div>
+
+    <footer class="footer">
+      <span>X1Bench</span>
+      <span class="dot">·</span>
+      <span>Built on X1</span>
+      <span class="dot">·</span>
+      <span>Read-only scanning</span>
+    </footer>
+  </div>
+
+  <!-- Hover tooltip container -->
+  <div id="hover-card" class="hover-card hidden"></div>
+
+  <script src="app.js"></script>
+</body>
+</html>
